@@ -1,0 +1,16 @@
+{
+  "name": "track-sd-05-server",
+  "version": "0.1.0",
+  "description": "Backend for the Track SD-05 Clinic Appointment System capstone",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node tests/concurrency.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.23.0"
+  }
+}

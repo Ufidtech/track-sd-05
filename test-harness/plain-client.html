@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track SD-05 Test Harness</title>
+  </head>
+  <body>
+    <h1>Track SD-05 Queue Test</h1>
+
+    <form id="ticket-form">
+      <label>Name <input type="text" id="name" value="Ada" /></label
+      ><br /><br />
+      <label>Phone <input type="text" id="phone" value="08012345678" /></label
+      ><br /><br />
+      <label>Language <input type="text" id="language" value="English" /></label
+      ><br /><br />
+      <label
+        >Channel
+        <select id="channel">
+          <option value="app">app</option>
+          <option value="proxy">proxy</option>
+        </select> </label
+      ><br /><br />
+      <label
+        >Priority
+        <select id="priority">
+          <option value="virtual_walkin">virtual_walkin</option>
+          <option value="scheduled">scheduled</option>
+          <option value="manual_proxy">manual_proxy</option>
+        </select> </label
+      ><br /><br />
+      <label
+        >Visual ID <input type="text" id="visual" value="Blue Star" /></label
+      ><br /><br />
+      <button type="submit">Register</button>
+    </form>
+
+    <pre id="result"></pre>
+    <pre id="stream-output"></pre>
+
+    <script>
+      const form = document.getElementById("ticket-form");
+      const resultBox = document.getElementById("result");
+      const streamBox = document.getElementById("stream-output");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const payload = {
+          name: document.getElementById("name").value,
+          phone: document.getElementById("phone").value,
+          language_preference: document.getElementById("language").value,
+          registration_channel: document.getElementById("channel").value,
+          priority_level: document.getElementById("priority").value,
+          visual_identifier: document.getElementById("visual").value,
+        };
+
+        const idempotencyKey = crypto.randomUUID();
+
+        const response = await fetch("http://localhost:3000/tickets", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        resultBox.textContent = JSON.stringify(data, null, 2);
+
+        if (data.ticket && data.ticket.id) {
+          const source = new EventSource(
+            `http://localhost:3000/tickets/${data.ticket.id}/stream`,
+          );
+          source.addEventListener("queue_update", (event) => {
+            streamBox.textContent += `queue_update: ${event.data}\n`;
+          });
+          source.addEventListener("heartbeat", (event) => {
+            streamBox.textContent += `heartbeat: ${event.data}\n`;
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
