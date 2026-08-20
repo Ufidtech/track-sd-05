@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { updateTicketStatus } = require('./ticketController');
 
 async function pullNextPatient(req, res) {
     const { id: doctorId } = req.params;
@@ -73,6 +74,78 @@ async function pullNextPatient(req, res) {
     }
 }
 
+async function completeConsultation(req, res) {
+    const { id: doctorId } = req.params;
+    const { ticketId } = req.body || {};
+
+    if (!doctorId) {
+        return res.status(400).json({
+            success: false,
+            message: 'Doctor id is required',
+        });
+    }
+
+    if (!ticketId) {
+        return res.status(400).json({
+            success: false,
+            message: 'ticketId is required',
+        });
+    }
+
+    try {
+        const consultationResult = await pool.query(
+            `SELECT id, ticket_id, doctor_id, started_at
+             FROM consultation
+             WHERE ticket_id = $1
+               AND doctor_id = $2
+               AND ended_at IS NULL
+             ORDER BY started_at DESC
+             LIMIT 1;`,
+            [ticketId, doctorId]
+        );
+
+        if (consultationResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Active consultation not found for this doctor and ticket',
+            });
+        }
+
+        const consultation = consultationResult.rows[0];
+
+        await pool.query(
+            `UPDATE consultation
+             SET ended_at = NOW(),
+                 delta_minutes = GREATEST(
+                     0,
+                     EXTRACT(EPOCH FROM (NOW() - started_at)) / 60
+                 )::int
+             WHERE id = $1;`,
+            [consultation.id]
+        );
+
+        const updatedTicket = await updateTicketStatus(ticketId, 'COMPLETE');
+
+        return res.status(200).json({
+            success: true,
+            message: 'Consultation completed',
+            ticket: updatedTicket,
+            consultation: {
+                ...consultation,
+                ended_at: new Date().toISOString(),
+            },
+        });
+    } catch (error) {
+        console.error('Failed to complete consultation:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to complete consultation',
+            error: error.message,
+        });
+    }
+}
+
 module.exports = {
     pullNextPatient,
+    completeConsultation,
 };
