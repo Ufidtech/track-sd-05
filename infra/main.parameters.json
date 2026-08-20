@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "track-sd-05"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "postgresAdminLogin": {
+      "value": "trackadmin"
+    },
+    "postgresAdminPassword": {
+      "value": "ReplaceWithStrongPassword123!"
+    },
+    "allowedOrigins": {
+      "value": "https://your-frontend-domain.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
+    }
+  }
+}

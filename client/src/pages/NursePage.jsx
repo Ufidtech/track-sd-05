@@ -1,6 +1,36 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { getRole, clearRole } from "../utils/role";
+
+const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function NursePage() {
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadQueue = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/tickets/queue`);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Unable to load queue");
+        }
+
+        setQueue(data.queue || []);
+      } catch (err) {
+        setError(err.message || "Load failed");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadQueue();
+  }, []);
+
   return (
     <main
       style={{
@@ -53,12 +83,28 @@ export default function NursePage() {
             <Link to="/" style={navStyle}>
               Home
             </Link>
-            <Link to="/patient" style={navStyle}>
-              Patient
-            </Link>
-            <Link to="/doctor" style={navStyle}>
-              Doctor
-            </Link>
+            {getRole() === "nurse" ? (
+              <>
+                <Link to="/nurse" style={navStyle}>
+                  Nurse
+                </Link>
+                <button
+                  onClick={() => {
+                    clearRole();
+                    navigate("/");
+                  }}
+                  style={navStyle}
+                >
+                  Change Role
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/nurse" style={navStyle}>
+                  Nurse
+                </Link>
+              </>
+            )}
           </nav>
         </div>
 
@@ -89,6 +135,63 @@ export default function NursePage() {
               Keep the system safe against duplicate registration retries.
             </li>
           </ul>
+        </section>
+
+        <section
+          style={{
+            background: "#ffffff",
+            borderRadius: 18,
+            padding: 28,
+            border: "1px solid #dfe3e8",
+            boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+            marginTop: 24,
+          }}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: 16 }}>Current queue</h2>
+
+          {loading ? (
+            <p>Loading queue…</p>
+          ) : error ? (
+            <p style={{ color: "#b42318" }}>{error}</p>
+          ) : queue.length === 0 ? (
+            <p>No patients in the active queue.</p>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {queue.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 12,
+                    padding: 14,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gap: 12,
+                    background: "#f9fafb",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>Queue</div>
+                    <strong>{ticket.queuePosition}</strong>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>Ticket</div>
+                    <strong>{ticket.sequence_number}</strong>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                      Patient
+                    </div>
+                    <strong>{ticket.displayName}</strong>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>Status</div>
+                    <strong>{ticket.status}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </main>

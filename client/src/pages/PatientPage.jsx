@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getRole, clearRole } from "../utils/role";
 import TicketForm from "../components/TicketForm";
 import QueueStatus from "../components/QueueStatus";
 
 export default function PatientPage() {
   const [currentTicket, setCurrentTicket] = useState(null);
+  const navigate = useNavigate();
 
   return (
     <main
@@ -58,17 +60,40 @@ export default function PatientPage() {
             <Link to="/" style={navStyle}>
               Home
             </Link>
-            <Link to="/nurse" style={navStyle}>
-              Nurse
-            </Link>
-            <Link to="/doctor" style={navStyle}>
-              Doctor
-            </Link>
+            {getRole() === "patient" ? (
+              <>
+                <Link to="/patient" style={navStyle}>
+                  Patient
+                </Link>
+                <button
+                  onClick={() => {
+                    clearRole();
+                    navigate("/");
+                  }}
+                  style={navStyle}
+                >
+                  Change Role
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/patient" style={navStyle}>
+                  Patient
+                </Link>
+              </>
+            )}
           </nav>
         </div>
 
         <TicketForm onTicketCreated={setCurrentTicket} />
-        <QueueStatus ticketId={currentTicket?.id ?? null} />
+        <QueueStatus
+          ticketId={
+            currentTicket?.id ??
+            currentTicket?.number ??
+            currentTicket?.ticket_number ??
+            null
+          }
+        />
       </div>
     </main>
   );

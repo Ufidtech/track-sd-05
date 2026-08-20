@@ -18,9 +18,16 @@ app.disable('x-powered-by');
 app.use((req, res, next) => {
     const requestOrigin = req.headers.origin;
     const isAllowedOrigin = !requestOrigin || allowedOrigins.includes(requestOrigin);
-    const chosenOrigin = isAllowedOrigin ? (requestOrigin || allowedOrigins[0]) : allowedOrigins[0];
 
-    res.setHeader('Access-Control-Allow-Origin', chosenOrigin);
+    if (requestOrigin && !isAllowedOrigin) {
+        console.warn(`Rejected origin ${requestOrigin}. Allowed origins: ${allowedOrigins.join(', ')}`);
+        return res.status(403).json({
+            success: false,
+            message: 'Origin not allowed',
+        });
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin || allowedOrigins[0]);
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key, Origin, Authorization');
     res.setHeader('Access-Control-Allow-Credentials', 'true');

@@ -1,6 +1,15 @@
 import { useState } from "react";
+import TicketSummary from "./TicketSummary";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+function generateIdempotencyKey() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `ticket-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 const initialForm = {
   name: "Ada",
@@ -32,7 +41,7 @@ export default function TicketForm({ onTicketCreated }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Idempotency-Key": crypto.randomUUID(),
+          "Idempotency-Key": generateIdempotencyKey(),
         },
         body: JSON.stringify(form),
       });
@@ -181,19 +190,10 @@ export default function TicketForm({ onTicketCreated }) {
         </p>
       )}
 
-      {result && (
-        <pre
-          style={{
-            background: "#f6f8fa",
-            padding: 16,
-            borderRadius: 10,
-            overflowX: "auto",
-            marginTop: 18,
-            border: "1px solid #e5e7eb",
-          }}
-        >
-          {JSON.stringify(result, null, 2)}
-        </pre>
+      {result && result.ticket && (
+        <div style={{ marginTop: 18 }}>
+          <TicketSummary ticket={result.ticket} />
+        </div>
       )}
     </section>
   );

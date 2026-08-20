@@ -1,6 +1,8 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { setRole } from "../utils/role";
 
 export default function HomePage() {
+  const navigate = useNavigate();
   return (
     <main
       style={{
@@ -54,15 +56,35 @@ export default function HomePage() {
           </p>
 
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <Link to="/patient" style={primaryCardStyle}>
+            <button
+              style={primaryCardStyle}
+              onClick={() => {
+                setRole("patient");
+                navigate("/patient");
+              }}
+            >
               Patient View
-            </Link>
-            <Link to="/nurse" style={secondaryCardStyle}>
+            </button>
+
+            <button
+              style={secondaryCardStyle}
+              onClick={() => {
+                setRole("nurse");
+                navigate("/nurse");
+              }}
+            >
               Nurse View
-            </Link>
-            <Link to="/doctor" style={secondaryCardStyle}>
+            </button>
+
+            <button
+              style={secondaryCardStyle}
+              onClick={() => {
+                setRole("doctor");
+                navigate("/doctor");
+              }}
+            >
               Doctor View
-            </Link>
+            </button>
           </div>
         </div>
       </div>

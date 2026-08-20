@@ -45,49 +45,52 @@ export default function QueueStatus({ ticketId }) {
   }, [ticketId]);
 
   return (
-    <section
-      style={{
-        background: "#ffffff",
-        border: "1px solid #dfe3e8",
-        borderRadius: 18,
-        padding: 28,
-        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
-      }}
-    >
-      <h2
-        style={{
-          margin: "0 0 16px",
-          fontSize: "clamp(2rem, 3vw, 3rem)",
-          lineHeight: 1.1,
-        }}
-      >
-        Queue Status
-      </h2>
+    <section className="card" aria-live="polite">
+      <h2 className="card-title">Queue Status</h2>
 
-      <p style={{ fontSize: 20, fontWeight: 600, margin: "0 0 8px" }}>
+      <p className="muted">
         <strong>Connection:</strong> {connectionState}
       </p>
 
       {heartbeat && (
-        <p style={{ fontSize: 16, margin: "0 0 14px" }}>
-          <strong>Last heartbeat:</strong>{" "}
-          {new Date(heartbeat.timestamp).toLocaleTimeString()}
+        <p className="muted">
+          Last heartbeat: {new Date(heartbeat.timestamp).toLocaleTimeString()}
         </p>
       )}
 
       {streamData ? (
-        <pre
-          style={{
-            background: "#f6f8fa",
-            padding: 16,
-            borderRadius: 10,
-            overflowX: "auto",
-            border: "1px solid #e5e7eb",
-            fontSize: 15,
-          }}
-        >
-          {JSON.stringify(streamData, null, 2)}
-        </pre>
+        <div className="live-card">
+          <div className="live-row">
+            <div>
+              <div className="muted">Your ticket</div>
+              <div className="ticket-number-small">
+                {streamData.ticket?.sequence_number ??
+                  streamData.ticket?.id ??
+                  "—"}
+              </div>
+            </div>
+
+            <div>
+              <div className="muted">Status</div>
+              <div className="status">
+                {streamData.ticket?.status ?? streamData.status ?? "—"}
+              </div>
+            </div>
+
+            <div>
+              <div className="muted">Position</div>
+              <div className="position">
+                {streamData.position ?? streamData.queue_position ?? "—"}
+              </div>
+            </div>
+          </div>
+
+          {streamData.raw && (
+            <pre className="debug">
+              {JSON.stringify(streamData.raw, null, 2)}
+            </pre>
+          )}
+        </div>
       ) : (
         <p style={{ fontSize: 18, margin: 0 }}>No live queue data yet.</p>
       )}
