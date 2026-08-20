@@ -8,7 +8,9 @@ export default function DoctorPage() {
   const [queue, setQueue] = useState([]);
   const [calledTicket, setCalledTicket] = useState(null);
   const [calledError, setCalledError] = useState(null);
+  const [actionError, setActionError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
   const loadQueue = async () => {
@@ -32,7 +34,9 @@ export default function DoctorPage() {
 
   const callNextPatient = async () => {
     try {
+      setBusy(true);
       setCalledError(null);
+      setActionError("");
       const res = await fetch(`${apiBaseUrl}/doctors/1/next`, {
         method: "POST",
       });
@@ -43,6 +47,40 @@ export default function DoctorPage() {
       await loadQueue();
     } catch (err) {
       setCalledError(err.message || String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const completeConsultation = async () => {
+    try {
+      setBusy(true);
+      setActionError("");
+      setCalledError(null);
+
+      if (!calledTicket?.id) {
+        throw new Error("No active ticket to complete");
+      }
+
+      const res = await fetch(`${apiBaseUrl}/doctors/1/complete`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ticketId: calledTicket.id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to complete consultation");
+      }
+
+      setCalledTicket(null);
+      await loadQueue();
+    } catch (err) {
+      setActionError(err.message || String(err));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -114,11 +152,9 @@ export default function DoctorPage() {
                 </button>
               </>
             ) : (
-              <>
-                <Link to="/doctor" style={navStyle}>
-                  Doctor
-                </Link>
-              </>
+              <Link to="/doctor" style={navStyle}>
+                Doctor
+              </Link>
             )}
           </nav>
         </div>
@@ -152,34 +188,43 @@ export default function DoctorPage() {
             <li>
               Confirm the patient’s status updates are reflected in real time.
             </li>
+            <li>Complete the consultation when finished.</li>
           </ul>
         </section>
 
-        <div style={{ marginTop: 18 }}>
-          <h3>Doctor actions</h3>
-          <button
-            className="btn"
-            onClick={callNextPatient}
-            style={{ marginTop: 8 }}
-          >
+        <div
+          style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap" }}
+        >
+          <button className="btn" onClick={callNextPatient} disabled={busy}>
             Call Next
           </button>
-
-          {calledError && (
-            <div style={{ marginTop: 12, color: "#b42318" }}>{calledError}</div>
-          )}
-
-          {calledTicket && (
-            <div style={{ marginTop: 12 }} className="card">
-              <div style={{ fontWeight: 800 }}>
-                {calledTicket.sequence_number ?? calledTicket.id}
-              </div>
-              <div style={{ color: "#6b7280" }}>
-                Status: {calledTicket.status ?? calledTicket.state}
-              </div>
-            </div>
-          )}
+          <button
+            className="btn btn-outline"
+            onClick={completeConsultation}
+            disabled={busy || !calledTicket?.id}
+          >
+            Complete Consultation
+          </button>
         </div>
+
+        {calledError && (
+          <div style={{ marginTop: 12, color: "#b42318" }}>{calledError}</div>
+        )}
+
+        {actionError && (
+          <div style={{ marginTop: 12, color: "#b42318" }}>{actionError}</div>
+        )}
+
+        {calledTicket && (
+          <div style={{ marginTop: 12 }} className="card">
+            <div style={{ fontWeight: 800 }}>
+              {calledTicket.sequence_number ?? calledTicket.id}
+            </div>
+            <div style={{ color: "#6b7280" }}>
+              Status: {calledTicket.status ?? calledTicket.state}
+            </div>
+          </div>
+        )}
 
         <section
           style={{

@@ -8,28 +8,56 @@ export default function NursePage() {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionBusyId, setActionBusyId] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadQueue = async () => {
-      try {
-        const response = await fetch(`${apiBaseUrl}/tickets/queue`);
-        const data = await response.json();
+  const loadQueue = async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/tickets/queue`);
+      const data = await response.json();
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.message || "Unable to load queue");
-        }
-
-        setQueue(data.queue || []);
-      } catch (err) {
-        setError(err.message || "Load failed");
-      } finally {
-        setLoading(false);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to load queue");
       }
-    };
 
+      setQueue(data.queue || []);
+    } catch (err) {
+      setError(err.message || "Load failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadQueue();
   }, []);
+
+  const runAction = async (ticketId, action) => {
+    try {
+      setActionError("");
+      setActionBusyId(ticketId);
+
+      const response = await fetch(
+        `${apiBaseUrl}/tickets/${ticketId}/${action}`,
+        {
+          method: "POST",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || `Failed to ${action} ticket`);
+      }
+
+      await loadQueue();
+    } catch (err) {
+      setActionError(err.message || "Action failed");
+    } finally {
+      setActionBusyId(null);
+    }
+  };
 
   return (
     <main
@@ -99,11 +127,9 @@ export default function NursePage() {
                 </button>
               </>
             ) : (
-              <>
-                <Link to="/nurse" style={navStyle}>
-                  Nurse
-                </Link>
-              </>
+              <Link to="/nurse" style={navStyle}>
+                Nurse
+              </Link>
             )}
           </nav>
         </div>
@@ -134,8 +160,15 @@ export default function NursePage() {
             <li>
               Keep the system safe against duplicate registration retries.
             </li>
+            <li>Hold patients when needed and recall them back into queue.</li>
           </ul>
         </section>
+
+        {actionError && (
+          <div style={{ marginTop: 16, color: "#b42318", fontWeight: 700 }}>
+            {actionError}
+          </div>
+        )}
 
         <section
           style={{
@@ -168,6 +201,7 @@ export default function NursePage() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
                     gap: 12,
                     background: "#f9fafb",
+                    alignItems: "center",
                   }}
                 >
                   <div>
@@ -187,6 +221,22 @@ export default function NursePage() {
                   <div>
                     <div style={{ fontSize: 12, color: "#6b7280" }}>Status</div>
                     <strong>{ticket.status}</strong>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      className="btn"
+                      onClick={() => runAction(ticket.id, "hold")}
+                      disabled={actionBusyId === ticket.id}
+                    >
+                      Hold
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => runAction(ticket.id, "recall")}
+                      disabled={actionBusyId === ticket.id}
+                    >
+                      Recall
+                    </button>
                   </div>
                 </div>
               ))}
