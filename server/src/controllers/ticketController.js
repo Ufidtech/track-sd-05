@@ -41,6 +41,52 @@ async function expireStaleTickets() {
     return result.rows;
 }
 
+async function getQueueSummary(req, res) {
+    try {
+        const result = await pool.query(
+            `SELECT t.id,
+                    t.sequence_number,
+                    t.status,
+                    t.priority_level,
+                    t.visual_identifier,
+                    t.created_at,
+                    p.name,
+                    p.phone,
+                    p.language_preference,
+                    p.registration_channel
+             FROM ticket t
+             JOIN patient p ON p.id = t.patient_id
+             WHERE t.status IN ('REGISTERED', 'ACTIVE', 'IN_CONSULT')
+             ORDER BY
+                 CASE t.priority_level
+                     WHEN 'scheduled' THEN 1
+                     WHEN 'virtual_walkin' THEN 2
+                     WHEN 'manual_proxy' THEN 3
+                 END,
+                 t.sequence_number ASC;`
+        );
+
+        const queue = result.rows.map((ticket, index) => ({
+            queuePosition: index + 1,
+            ...ticket,
+            displayName: ticket.name || 'Unknown patient',
+        }));
+
+        return res.status(200).json({
+            success: true,
+            queue,
+            count: queue.length,
+        });
+    } catch (error) {
+        console.error('Queue summary failed:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Queue summary failed',
+            error: error.message,
+        });
+    }
+}
+
 async function registerTicket(req, res) {
     const {
         name,
@@ -130,4 +176,5 @@ module.exports = {
     nextTicketStatus,
     updateTicketStatus,
     expireStaleTickets,
+    getQueueSummary,
 };

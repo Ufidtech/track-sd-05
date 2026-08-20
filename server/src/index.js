@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
-const pool = require('./config/db');
+const db = require('./config/db');
+const pool = db;
+const { ensureDatabaseSchema } = db;
 const ticketRoutes = require('./routes/ticketRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 
@@ -54,6 +56,16 @@ app.get('/health/db', async (req, res) => {
 app.use(ticketRoutes);
 app.use(doctorRoutes);
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-});
+async function startServer() {
+    try {
+        await ensureDatabaseSchema();
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server running on http://0.0.0.0:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to initialize application database schema:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
