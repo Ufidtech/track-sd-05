@@ -25,6 +25,7 @@ jobs:
 
       - name: npm install, build, and test
         run: |
+          cd server
           npm install
           npm run build --if-present
           npm run test --if-present
@@ -61,5 +62,5 @@ jobs:
         with:
           app-name: 'track-sd-05-backend'
           slot-name: 'Production'
-          package: .
+          package: ./server
           
