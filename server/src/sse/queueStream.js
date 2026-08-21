@@ -17,21 +17,47 @@ async function streamTicket(req, res, next) {
 
     const sendTicketState = async () => {
         try {
-            const result = await pool.query(
-                `SELECT t.id, t.sequence_number, t.status, t.priority_level,
-                        p.name, p.language_preference
+            const ticketResult = await pool.query(
+                `SELECT t.id,
+                        t.sequence_number,
+                        t.status,
+                        t.priority_level,
+                        t.created_at,
+                        p.name,
+                        p.language_preference
                  FROM ticket t
                  JOIN patient p ON p.id = t.patient_id
                  WHERE t.id = $1;`,
                 [id]
             );
 
-            if (result.rows.length > 0) {
-                sendEvent('queue_update', {
-                    ticket: result.rows[0],
-                    updatedAt: new Date().toISOString(),
-                });
+            if (ticketResult.rows.length === 0) {
+                return;
             }
+
+            const currentTicket = ticketResult.rows[0];
+
+            const queueResult = await pool.query(
+                `SELECT t.id
+                 FROM ticket t
+                 WHERE t.status IN ('REGISTERED', 'ACTIVE', 'HELD', 'RECALLED', 'IN_CONSULT')
+                 ORDER BY
+                     CASE t.priority_level
+                         WHEN 'scheduled' THEN 1
+                         WHEN 'virtual_walkin' THEN 2
+                         WHEN 'manual_proxy' THEN 3
+                     END,
+                     t.sequence_number ASC;`
+            );
+
+            const queuePosition = queueResult.rows.findIndex((row) => row.id === id);
+            const position = queuePosition >= 0 ? queuePosition + 1 : null;
+
+            sendEvent('queue_update', {
+                ticket: currentTicket,
+                position,
+                updatedAt: new Date().toISOString(),
+            });
         } catch (error) {
             sendEvent('queue_update', {
                 error: error.message,
