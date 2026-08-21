@@ -49,6 +49,14 @@ export default function AdminPage() {
     setError("");
     setMessage("");
 
+    if (!ticketId.trim() || !staffId.trim() || !reasonCode.trim()) {
+      setError(
+        "Please enter a ticket ID, staff ID, and reason before submitting.",
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(
         `${apiBaseUrl}/tickets/${ticketId}/reinstate`,
