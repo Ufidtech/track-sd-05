@@ -4,7 +4,6 @@ const TICKET_STATUS_FLOW = ['REGISTERED', 'ACTIVE', 'IN_CONSULT', 'COMPLETE'];
 const QUEUE_STATUSES = ['REGISTERED', 'ACTIVE', 'HELD', 'RECALLED', 'IN_CONSULT'];
 
 function nextTicketStatus(currentStatus) {
-
     const currentIndex = TICKET_STATUS_FLOW.indexOf(currentStatus);
     if (currentIndex === -1 || currentIndex === TICKET_STATUS_FLOW.length - 1) {
         return currentStatus;
@@ -31,14 +30,6 @@ async function updateTicketStatus(ticketId, nextStatus) {
     return result.rows[0] || null;
 }
 
-
-
-
-
-
-
-
-
 async function expireStaleTickets() {
     const result = await pool.query(
         `UPDATE ticket t
@@ -57,10 +48,6 @@ async function expireStaleTickets() {
     return result.rows;
 }
 
-
-
-
-
 async function getQueueSummary(req, res) {
     try {
         const result = await pool.query(
@@ -76,28 +63,17 @@ async function getQueueSummary(req, res) {
                     p.registration_channel
              FROM ticket t
              JOIN patient p ON p.id = t.patient_id
-
-
-
-
-
-
-
-
-
-                          WHERE t.status = ANY($1::text[])
-                          ORDER BY
-                              CASE t.priority_level
-                                  WHEN 'scheduled' THEN 1
-                                  WHEN 'virtual_walkin' THEN 2
-                                  WHEN 'manual_proxy' THEN 3
-                              END,
-                              t.created_at ASC,
-                              t.sequence_number ASC;`,
+             WHERE t.status = ANY($1::text[])
+             ORDER BY
+                 CASE t.priority_level
+                     WHEN 'scheduled' THEN 1
+                     WHEN 'virtual_walkin' THEN 2
+                     WHEN 'manual_proxy' THEN 3
+                 END,
+                 t.created_at ASC,
+                 t.sequence_number ASC;`,
             [QUEUE_STATUSES]
         );
-
-
 
         const queue = result.rows.map((ticket, index) => ({
             queuePosition: index + 1,
@@ -154,19 +130,11 @@ async function registerTicket(req, res) {
         });
     }
 
-
-
-
-
-
-
-
     try {
         const existing = idempotencyStore.get(key);
         if (existing && existing.statusCode !== 202) {
             return res.status(existing.statusCode).json(existing.body);
         }
-
 
         const patientInsert = await pool.query(
             `INSERT INTO patient (name, phone, language_preference, registration_channel)
@@ -174,7 +142,6 @@ async function registerTicket(req, res) {
              RETURNING id;`,
             [name, phone, language_preference, registration_channel]
         );
-
 
         const patientId = patientInsert.rows[0].id;
 
@@ -222,6 +189,15 @@ async function reinstateTicket(req, res) {
     const { id } = req.params;
     const { staff_id, reason_code, free_text } = req.body || {};
 
+    // 1. UUID Validation Check
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid Ticket ID format. Please enter a valid UUID.',
+        });
+    }
+
     if (!staff_id || !reason_code) {
         return res.status(400).json({
             success: false,
@@ -257,6 +233,7 @@ async function reinstateTicket(req, res) {
             ticket: ticketResult.rows[0],
         });
     } catch (error) {
+        console.error('Ticket reinstatement failed:', error);
         return res.status(500).json({
             success: false,
             message: 'Failed to reinstate ticket',
@@ -286,7 +263,6 @@ async function getReinstatementLogs(req, res) {
         });
     }
 }
-
 
 module.exports = {
     registerTicket,
