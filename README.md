@@ -1,4 +1,4 @@
-rack SD-05 — Clinic Appointment System
+Track SD-05 — Clinic Appointment System
 A patient never has to wonder how much longer they’ll wait.
 
 Track SD-05 is a clinic queue management system designed to reduce congestion, improve transparency, and support faster patient flow in public healthcare settings. It digitizes the queue so patients, nurses, doctors, and admins can work from the same live state without losing track of who is next.
