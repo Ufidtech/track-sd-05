@@ -5,6 +5,8 @@ const pool = db;
 const { ensureDatabaseSchema } = db;
 const ticketRoutes = require('./routes/ticketRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
+const { getReinstatementLogs } = require('./controllers/ticketController');
+
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -111,6 +113,9 @@ app.get('/health/db', async (req, res) => {
 
 app.use(ticketRoutes);
 app.use(doctorRoutes);
+
+app.get('/admin/reinstatements', getReinstatementLogs);
+
 
 async function startServer() {
     try {

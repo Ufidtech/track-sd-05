@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import TicketForm from "../components/TicketForm";
 import { getRole, clearRole } from "../utils/role";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -132,6 +133,10 @@ export default function NursePage() {
               </Link>
             )}
           </nav>
+        </div>
+
+        <div style={{ marginTop: 24 }}>
+          <TicketForm />
         </div>
 
         <section

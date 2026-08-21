@@ -3,7 +3,10 @@ const {
     registerTicket,
     getQueueSummary,
     updateTicketStatus,
+    reinstateTicket,
+    getReinstatementLogs,
 } = require('../controllers/ticketController');
+
 const idempotencyMiddleware = require('../middleware/idempotency');
 const { streamTicket } = require('../sse/queueStream');
 
@@ -60,5 +63,8 @@ router.post('/tickets/:id/recall', async (req, res) => {
         });
     }
 });
+
+router.post('/tickets/:id/reinstate', reinstateTicket);
+router.get('/admin/reinstatements', getReinstatementLogs);
 
 module.exports = router;

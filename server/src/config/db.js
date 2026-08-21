@@ -15,10 +15,11 @@ if (hasExplicitPgEnv) {
     delete process.env.DATABASE_URL;
 }
 
-const connectionConfig = process.env.DATABASE_URL
+const useDatabaseUrl = Boolean(process.env.DATABASE_URL);
+const connectionConfig = useDatabaseUrl
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
+        ssl: { rejectUnauthorized: false },
     }
     : {
         host: process.env.PGHOST || 'localhost',
@@ -29,12 +30,14 @@ const connectionConfig = process.env.DATABASE_URL
         ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
     };
 
+
 const pool = new Pool({
     ...connectionConfig,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 15000,
 });
+
 
 async function ensureDatabaseSchema() {
     const tableCheck = await pool.query(`

@@ -85,6 +85,16 @@ export default function HomePage() {
             >
               Doctor View
             </button>
+
+            <button
+              style={secondaryCardStyle}
+              onClick={() => {
+                setRole("admin");
+                navigate("/admin");
+              }}
+            >
+              Admin View
+            </button>
           </div>
         </div>
       </div>

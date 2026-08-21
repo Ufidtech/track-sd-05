@@ -1,8 +1,10 @@
 const pool = require('../config/db');
 
 const TICKET_STATUS_FLOW = ['REGISTERED', 'ACTIVE', 'IN_CONSULT', 'COMPLETE'];
+const QUEUE_STATUSES = ['REGISTERED', 'ACTIVE', 'HELD', 'RECALLED', 'IN_CONSULT'];
 
 function nextTicketStatus(currentStatus) {
+
     const currentIndex = TICKET_STATUS_FLOW.indexOf(currentStatus);
     if (currentIndex === -1 || currentIndex === TICKET_STATUS_FLOW.length - 1) {
         return currentStatus;
@@ -29,17 +31,35 @@ async function updateTicketStatus(ticketId, nextStatus) {
     return result.rows[0] || null;
 }
 
+
+
+
+
+
+
+
+
 async function expireStaleTickets() {
     const result = await pool.query(
-        `UPDATE ticket
+        `UPDATE ticket t
          SET status = 'EXPIRED'
-         WHERE status NOT IN ('COMPLETE', 'EXPIRED')
-           AND created_at < NOW() - INTERVAL '3 hours'
-         RETURNING id, status;`
+         WHERE t.status NOT IN ('COMPLETE', 'EXPIRED')
+           AND t.created_at < NOW() - INTERVAL '3 hours'
+           AND (
+               SELECT COUNT(*)
+               FROM notification_attempt n
+               WHERE n.ticket_id = t.id
+                 AND n.delivery_status = 'delivered'
+           ) >= 6
+         RETURNING t.id, t.status;`
     );
 
     return result.rows;
 }
+
+
+
+
 
 async function getQueueSummary(req, res) {
     try {
@@ -56,15 +76,28 @@ async function getQueueSummary(req, res) {
                     p.registration_channel
              FROM ticket t
              JOIN patient p ON p.id = t.patient_id
-             WHERE t.status IN ('REGISTERED', 'ACTIVE', 'HELD', 'RECALLED', 'IN_CONSULT')
-             ORDER BY
-                 CASE t.priority_level
-                     WHEN 'scheduled' THEN 1
-                     WHEN 'virtual_walkin' THEN 2
-                     WHEN 'manual_proxy' THEN 3
-                 END,
-                 t.sequence_number ASC;`
+
+
+
+
+
+
+
+
+
+                          WHERE t.status = ANY($1::text[])
+                          ORDER BY
+                              CASE t.priority_level
+                                  WHEN 'scheduled' THEN 1
+                                  WHEN 'virtual_walkin' THEN 2
+                                  WHEN 'manual_proxy' THEN 3
+                              END,
+                              t.created_at ASC,
+                              t.sequence_number ASC;`,
+            [QUEUE_STATUSES]
         );
+
+
 
         const queue = result.rows.map((ticket, index) => ({
             queuePosition: index + 1,
@@ -121,13 +154,27 @@ async function registerTicket(req, res) {
         });
     }
 
+
+
+
+
+
+
+
     try {
+        const existing = idempotencyStore.get(key);
+        if (existing && existing.statusCode !== 202) {
+            return res.status(existing.statusCode).json(existing.body);
+        }
+
+
         const patientInsert = await pool.query(
             `INSERT INTO patient (name, phone, language_preference, registration_channel)
              VALUES ($1, $2, $3, $4)
              RETURNING id;`,
             [name, phone, language_preference, registration_channel]
         );
+
 
         const patientId = patientInsert.rows[0].id;
 
@@ -171,10 +218,82 @@ async function registerTicket(req, res) {
     }
 }
 
+async function reinstateTicket(req, res) {
+    const { id } = req.params;
+    const { staff_id, reason_code, free_text } = req.body || {};
+
+    if (!staff_id || !reason_code) {
+        return res.status(400).json({
+            success: false,
+            message: 'staff_id and reason_code are required',
+        });
+    }
+
+    try {
+        const ticketResult = await pool.query(
+            `UPDATE ticket
+             SET status = 'ACTIVE'
+             WHERE id = $1
+             RETURNING id, patient_id, sequence_number, priority_level, visual_identifier, status, created_at;`,
+            [id]
+        );
+
+        if (ticketResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket not found',
+            });
+        }
+
+        await pool.query(
+            `INSERT INTO reinstatement_log (ticket_id, staff_id, reason_code, free_text)
+             VALUES ($1, $2, $3, $4);`,
+            [id, staff_id, reason_code, free_text || null]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Ticket reinstated',
+            ticket: ticketResult.rows[0],
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to reinstate ticket',
+            error: error.message,
+        });
+    }
+}
+
+async function getReinstatementLogs(req, res) {
+    try {
+        const result = await pool.query(
+            `SELECT id, ticket_id, staff_id, reason_code, free_text, created_at
+             FROM reinstatement_log
+             ORDER BY created_at DESC
+             LIMIT 100;`
+        );
+
+        return res.status(200).json({
+            success: true,
+            logs: result.rows,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to load reinstatement logs',
+            error: error.message,
+        });
+    }
+}
+
+
 module.exports = {
     registerTicket,
     getQueueSummary,
     updateTicketStatus,
     expireStaleTickets,
     nextTicketStatus,
+    reinstateTicket,
+    getReinstatementLogs,
 };

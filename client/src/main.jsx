@@ -7,6 +7,8 @@ import HomePage from "./pages/HomePage";
 import PatientPage from "./pages/PatientPage";
 import NursePage from "./pages/NursePage";
 import DoctorPage from "./pages/DoctorPage";
+import AdminPage from "./pages/AdminPage";
+
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -17,6 +19,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/patient" element={<PatientPage />} />
         <Route path="/nurse" element={<NursePage />} />
         <Route path="/doctor" element={<DoctorPage />} />
+        <Route path="/admin" element={<AdminPage />} />
+
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

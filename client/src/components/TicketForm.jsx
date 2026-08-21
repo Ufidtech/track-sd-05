@@ -25,6 +25,7 @@ export default function TicketForm({ onTicketCreated }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -53,6 +54,7 @@ export default function TicketForm({ onTicketCreated }) {
       }
 
       setResult(data);
+      setSubmitted(true);
       onTicketCreated?.(data.ticket);
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -82,100 +84,102 @@ export default function TicketForm({ onTicketCreated }) {
         Register Patient
       </h2>
 
-      <form onSubmit={handleSubmit}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: 18,
-          }}
-        >
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>Name</span>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-          </label>
+      {!submitted ? (
+        <form onSubmit={handleSubmit}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 18,
+            }}
+          >
+            <label style={labelStyle}>
+              <span style={labelTextStyle}>Name</span>
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                style={inputStyle}
+              />
+            </label>
 
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>Phone</span>
-            <input
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-          </label>
+            <label style={labelStyle}>
+              <span style={labelTextStyle}>Phone</span>
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                style={inputStyle}
+              />
+            </label>
 
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>Language</span>
-            <input
-              name="language_preference"
-              value={form.language_preference}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-          </label>
+            <label style={labelStyle}>
+              <span style={labelTextStyle}>Language</span>
+              <input
+                name="language_preference"
+                value={form.language_preference}
+                onChange={handleChange}
+                style={inputStyle}
+              />
+            </label>
 
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>Channel</span>
-            <select
-              name="registration_channel"
-              value={form.registration_channel}
-              onChange={handleChange}
-              style={inputStyle}
-            >
-              <option value="app">app</option>
-              <option value="proxy">proxy</option>
-            </select>
-          </label>
+            <label style={labelStyle}>
+              <span style={labelTextStyle}>Channel</span>
+              <select
+                name="registration_channel"
+                value={form.registration_channel}
+                onChange={handleChange}
+                style={inputStyle}
+              >
+                <option value="app">app</option>
+                <option value="proxy">proxy</option>
+              </select>
+            </label>
 
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>Priority</span>
-            <select
-              name="priority_level"
-              value={form.priority_level}
-              onChange={handleChange}
-              style={inputStyle}
-            >
-              <option value="virtual_walkin">virtual_walkin</option>
-              <option value="scheduled">scheduled</option>
-              <option value="manual_proxy">manual_proxy</option>
-            </select>
-          </label>
+            <label style={labelStyle}>
+              <span style={labelTextStyle}>Priority</span>
+              <select
+                name="priority_level"
+                value={form.priority_level}
+                onChange={handleChange}
+                style={inputStyle}
+              >
+                <option value="virtual_walkin">virtual_walkin</option>
+                <option value="scheduled">scheduled</option>
+                <option value="manual_proxy">manual_proxy</option>
+              </select>
+            </label>
 
-          <label style={labelStyle}>
-            <span style={labelTextStyle}>Visual ID</span>
-            <input
-              name="visual_identifier"
-              value={form.visual_identifier}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-          </label>
-        </div>
+            <label style={labelStyle}>
+              <span style={labelTextStyle}>Visual ID</span>
+              <input
+                name="visual_identifier"
+                value={form.visual_identifier}
+                onChange={handleChange}
+                style={inputStyle}
+              />
+            </label>
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            marginTop: 20,
-            padding: "0.9rem 1.4rem",
-            fontWeight: 700,
-            border: "none",
-            borderRadius: 10,
-            background: "#1f2937",
-            color: "#ffffff",
-            cursor: "pointer",
-            fontSize: 20,
-          }}
-        >
-          {loading ? "Registering..." : "Register"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              marginTop: 20,
+              padding: "0.9rem 1.4rem",
+              fontWeight: 700,
+              border: "none",
+              borderRadius: 10,
+              background: "#1f2937",
+              color: "#ffffff",
+              cursor: "pointer",
+              fontSize: 20,
+            }}
+          >
+            {loading ? "Registering..." : "Register"}
+          </button>
+        </form>
+      ) : null}
 
       {error && (
         <p
